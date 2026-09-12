@@ -78,6 +78,29 @@
 
 @end
 
+@implementation MYArgExceptionOptionNotFound
+
+- (OFString *)description {
+	return @"MYArgParser encountered a flag it doesn't recognize";
+}
+
+@end
+
+@interface MYArgExceptionCannotConvertValue ()
+@property (nonatomic, retain) Class requestedType;
+@property (nonatomic, retain) OFString *foundValue;
+
+- (instancetype)exceptionWithRequestedType:(Class)requestedType andFoundValue:(OFString *)foundValue;
+@end
+
+@implementation MYArgExceptionCannotConvertValue
+
+- (OFString *)description {
+	return [OFString stringWithFormat:@"MYArgParser tried to honor your request to return a value of type %@ however we got '%@' which could not be converted", self.requestedType, self.foundValue];
+}
+
+@end
+
 @interface MYArgParser ()
 @property (nonatomic, retain) OFArray *loadedOptions;
 @property (nonatomic) BOOL enableEndOfOptions;
@@ -100,15 +123,14 @@
 	return [[MYArgParser alloc] initWithOptions:options enableEndOfOptions:YES];
 }
 
-- (OFArray<MYArgMatch *> *)getMatchesForArgc:(int)argc andArgv:(char **)argv {
-	if (argc <= 1)
+- (OFArray<MYArgMatch *> *)getMatches:(OFArray *)arguments {
+	if (arguments.count <= 0)
 		return @[];
 
 	OFMutableArray *matches = [[OFMutableArray alloc] init];
 
-	for (int i = 1; i < argc; i++) {
-		OFString *maybeFlag = [OFString stringWithUTF8StringNoCopy:argv[i] freeWhenDone:NO];
-
+	for (OFString *maybeFlag in arguments) {
+		int i = [arguments indexOfObject:maybeFlag];
 		// early exit because unrecognized option passed
 		if (![self.loadedOptions containsObject:maybeFlag]) {
 			return nil; // throw specific exception perhaps
@@ -125,15 +147,15 @@
 			if (![option.valueType isEqual:[OFNumber class]] && ![option.valueType isEqual:[OFString class]]) {
 				@throw ([OFException exception]); // throw specific
 			}
-			
-			if (i == argc-1) {
+
+			if (i == arguments.count-1) {
 				[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:option.implicitValue]];
 				continue;
 			}
 
-			char *rawValue = argv[i+1];
-			if (self.enableEndOfOptions && strcmp(rawValue, "--") == 0) {
-				if (i+2 == argc) {
+			OFString *maybeValue = [arguments objectAtIndex:i+1];
+			if (self.enableEndOfOptions && [maybeValue isEqual:@"--"]) {
+				if (i+2 == arguments.count) {
 					if ([option.valueType isEqual:[OFNumber class]])
 						@try {
 							[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:0]];
@@ -144,12 +166,7 @@
 						[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:@""]];
 					return matches;
 				}
-				value = [[OFMutableString alloc] init];
-				for (int x = i+2;x < argc; x++) {
-					[value appendUTF8String:argv[x]];
-					if (argc-1 != x)
-						[value appendString:@" "];
-				}
+				value = [[arguments objectsInRange:OFMakeRange(i+2, arguments.count-(i+2))] componentsJoinedByString:@" "];
 				if ([option.valueType isEqual:[OFNumber class]])
 					@try {
 						[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:[OFNumber numberWithInt:[value intValue]]]];
@@ -159,19 +176,19 @@
 				else
 					[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:value]];
 				return matches;
-			} else if (strncmp(rawValue, "-", 1) == 0 && strlen(rawValue) > 1) {
+			} else if ([maybeValue hasPrefix:@"-"] && maybeValue.length > 1) {
 				[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:option.implicitValue]];
 				continue;
 			}
 
 			if ([option.valueType isEqual:[OFNumber class]])
 				@try {
-					value = [OFNumber numberWithInt:[[OFString stringWithUTF8String:rawValue] intValue]];
+					value = [OFNumber numberWithInt:[maybeValue intValue]];
 				} @catch (OFException *ex) {
 					@throw (ex); // throw specific
 				}
 			else if ([option.valueType isEqual:[OFString class]])
-				value = [OFString stringWithUTF8String:rawValue];
+				value = maybeValue;
 
 			i++; // we ate the value after this current idx... yummy...
 			

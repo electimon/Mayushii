@@ -7,5 +7,5 @@ build:
 
 all: build
 clean:
-	rm libmayushii.so
+	rm libmayushii.so || rm mayushii0.dll || true
 	echo Done!

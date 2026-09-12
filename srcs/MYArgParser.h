@@ -21,12 +21,18 @@
 
 @end
 
+@interface MYArgExceptionOptionNotFound : OFException
+@end
+
+@interface MYArgExceptionCannotConvertValue : OFException
+@end
+
 @interface MYArgParser : OFObject
 
 - (instancetype)initWithOptions:(OFArray<MYArgOption *> *)options enableEndOfOptions:(BOOL)enableEndOfOptions;
 + (instancetype)parserWithOptions:(OFArray<MYArgOption *> *)options enableEndOfOptions:(BOOL)enableEndOfOptions;
 + (instancetype)parserWithOptions:(OFArray<MYArgOption *> *)options;
 
-- (OFArray<MYArgMatch *> *)getMatchesForArgc:(int)argc andArgv:(char **)argv;
+- (OFArray<MYArgMatch *> *)getMatches:(OFArray *)arguments;
 
 @end
