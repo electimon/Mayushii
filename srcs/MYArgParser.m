@@ -1,5 +1,7 @@
 #import "MYArgParser.h"
 
+// RGL-001 Argumentative Monster
+
 // yes we abuse isEqual, get over it
 
 @implementation MYArgMatch
@@ -78,10 +80,62 @@
 
 @end
 
-@implementation MYArgExceptionOptionNotFound
+@interface MYArgExceptionDuplicateFlag ()
+@property (nonatomic, retain) OFString *duplicateFlag;
+
++ (instancetype)exceptionWithDuplicateFlag:(OFString *)duplicateFlag;
+@end
+
+@implementation MYArgExceptionDuplicateFlag
+
++ (instancetype)exceptionWithDuplicateFlag:(OFString *)duplicateFlag {
+	MYArgExceptionDuplicateFlag *ex = [[MYArgExceptionDuplicateFlag alloc] init];
+	ex.duplicateFlag = duplicateFlag;
+	return ex;
+}
 
 - (OFString *)description {
-	return @"MYArgParser encountered a flag it doesn't recognize";
+	return [OFString stringWithFormat:@"MYArgParser encountered a duplicate flag (%@)!", self.duplicateFlag];
+}
+
+@end
+
+@interface MYArgExceptionOptionNotFound ()
+@property (nonatomic, retain) OFString *encounteredFlag;
+
++ (instancetype)exceptionWithEncounteredFlag:(OFString *)encounteredFlag;
+@end
+
+@implementation MYArgExceptionOptionNotFound
+
++ (instancetype)exceptionWithEncounteredFlag:(OFString *)encounteredFlag {
+	MYArgExceptionOptionNotFound *ex = [[MYArgExceptionOptionNotFound alloc] init];
+	ex.encounteredFlag = encounteredFlag;
+	return ex;
+}
+
+- (OFString *)description {
+	return [OFString stringWithFormat:@"MYArgParser encountered a flag (%@) it doesn't recognize", self.encounteredFlag];
+}
+
+@end
+
+@interface MYArgExceptionUnsupportedValueType ()
+@property (nonatomic, retain) Class requestedType;
+
++ (instancetype)exceptionWithRequestedType:(Class)requestedType;
+@end
+
+@implementation MYArgExceptionUnsupportedValueType
+
++ (instancetype)exceptionWithRequestedType:(Class)requestedType {
+	MYArgExceptionUnsupportedValueType *ex = [[MYArgExceptionUnsupportedValueType alloc] init];
+	ex.requestedType = requestedType;
+	return ex;
+}
+
+- (OFString *)description {
+	return [OFString stringWithFormat:@"MYArgParser encountered requested value type of %@ which it does not know how to convert!", self.requestedType];
 }
 
 @end
@@ -90,13 +144,20 @@
 @property (nonatomic, retain) Class requestedType;
 @property (nonatomic, retain) OFString *foundValue;
 
-- (instancetype)exceptionWithRequestedType:(Class)requestedType andFoundValue:(OFString *)foundValue;
++ (instancetype)exceptionWithRequestedType:(Class)requestedType andFoundValue:(OFString *)foundValue;
 @end
 
 @implementation MYArgExceptionCannotConvertValue
 
++ (instancetype)exceptionWithRequestedType:(Class)requestedType andFoundValue:(OFString *)foundValue {
+	MYArgExceptionCannotConvertValue *ex = [[MYArgExceptionCannotConvertValue alloc] init];
+	ex.requestedType = requestedType;
+	ex.foundValue = foundValue;
+	return ex;
+}
+
 - (OFString *)description {
-	return [OFString stringWithFormat:@"MYArgParser tried to honor your request to return a value of type %@ however we got '%@' which could not be converted", self.requestedType, self.foundValue];
+	return [OFString stringWithFormat:@"MYArgParser tried to honor your request to return a value of type %@ however we got '%@' which we could not convert", self.requestedType, self.foundValue];
 }
 
 @end
@@ -129,24 +190,23 @@
 
 	OFMutableArray *matches = [[OFMutableArray alloc] init];
 
-	for (OFString *maybeFlag in arguments) {
-		int i = [arguments indexOfObject:maybeFlag];
+	for (int i = 0; i < arguments.count; i++) {
+		OFString *maybeFlag = [arguments objectAtIndex:i];
+
 		// early exit because unrecognized option passed
-		if (![self.loadedOptions containsObject:maybeFlag]) {
-			return nil; // throw specific exception perhaps
-		}
+		if (![self.loadedOptions containsObject:maybeFlag])
+			@throw ([MYArgExceptionOptionNotFound exceptionWithEncounteredFlag:maybeFlag]);
 
 		MYArgOption *option = [self.loadedOptions objectAtIndex:[self.loadedOptions indexOfObject:maybeFlag]];
 
 		// we continue when we have passed this flag already
 		if ([matches containsObject:option.longForm])
-			continue;
+			@throw ([MYArgExceptionDuplicateFlag exceptionWithDuplicateFlag:maybeFlag]);
 
 		id value = nil;
 		if (option.valueType != nil) {
-			if (![option.valueType isEqual:[OFNumber class]] && ![option.valueType isEqual:[OFString class]]) {
-				@throw ([OFException exception]); // throw specific
-			}
+			if (![option.valueType isEqual:[OFNumber class]] && ![option.valueType isEqual:[OFString class]])
+				@throw ([MYArgExceptionUnsupportedValueType exceptionWithRequestedType:option.valueType]);
 
 			if (i == arguments.count-1) {
 				[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:option.implicitValue]];
@@ -156,27 +216,25 @@
 			OFString *maybeValue = [arguments objectAtIndex:i+1];
 			if (self.enableEndOfOptions && [maybeValue isEqual:@"--"]) {
 				if (i+2 == arguments.count) {
+					// we've reached the end of the list and the user didn't pass anything after the '--'
 					if ([option.valueType isEqual:[OFNumber class]])
-						@try {
-							[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:0]];
-						} @catch (OFException *ex) {
-							@throw (ex); // throw specific
-						}
-					else
+						[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:[OFNumber numberWithInt:0]]];
+					else if ([option.valueType isEqual:[OFString class]])
 						[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:@""]];
+					// insert more cases here
 					return matches;
 				}
 				value = [[arguments objectsInRange:OFMakeRange(i+2, arguments.count-(i+2))] componentsJoinedByString:@" "];
 				if ([option.valueType isEqual:[OFNumber class]])
 					@try {
 						[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:[OFNumber numberWithInt:[value intValue]]]];
-					} @catch (OFException *ex) {
-						@throw (ex); // throw specific
+					} @catch (OFInvalidFormatException *ex) {
+						@throw ([MYArgExceptionCannotConvertValue exceptionWithRequestedType:option.valueType andFoundValue:value]);
 					}
 				else
 					[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:value]];
 				return matches;
-			} else if ([maybeValue hasPrefix:@"-"] && maybeValue.length > 1) {
+			} else if (([maybeValue hasPrefix:@"-"] && maybeValue.length > 1) && (([option.valueType isEqual:[OFString class]]) || ([option.valueType isEqual:[OFNumber class]] && !isdigit([maybeValue characterAtIndex:1])))) {
 				[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:option.implicitValue]];
 				continue;
 			}
@@ -185,13 +243,13 @@
 				@try {
 					value = [OFNumber numberWithInt:[maybeValue intValue]];
 				} @catch (OFException *ex) {
-					@throw (ex); // throw specific
+					@throw ([MYArgExceptionCannotConvertValue exceptionWithRequestedType:option.valueType andFoundValue:maybeValue]);
 				}
 			else if ([option.valueType isEqual:[OFString class]])
 				value = maybeValue;
 
 			i++; // we ate the value after this current idx... yummy...
-			
+
 			[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:value]];
 		} else
 			[matches addObject:[[MYArgMatch alloc] initWithFlag:option.longForm andValue:[OFNumber numberWithBool:YES]]];

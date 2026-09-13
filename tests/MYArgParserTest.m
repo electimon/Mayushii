@@ -7,7 +7,6 @@ OF_APPLICATION_DELEGATE(MYArgParserTest)
 - (void)applicationDidFinishLaunching: (OFNotification *)notification
 {
 	OFApplication *app = [OFApplication sharedApplication];
-    OFArray *arguments = [app arguments];
 	MYArgParser *parser = [MYArgParser parserWithOptions:@[
 		[MYArgOption optionWithLongForm:@"long-ass-option"],
 		[MYArgOption optionWithLongForm:@"long-ass-option-with-short-form" andShortForm:@"x"],

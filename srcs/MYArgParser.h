@@ -1,27 +1,33 @@
 #import <ObjFW/ObjFW.h>
 
 @interface MYArgOption : OFObject
-@property (nonatomic, strong) OFString *longForm;
+@property (nonatomic, strong) OFString *_Nonnull longForm;
 @property (nonatomic, strong) OFString *_Nullable shortForm;
 @property (nonatomic) Class _Nullable valueType;
 @property (nonatomic, strong) id _Nullable implicitValue;
 
-- (instancetype)initWithLongForm:(OFString *)longForm shortForm:(OFString *_Nullable)shortForm valueType:(_Nullable Class)valueType withImplictValue:(_Nullable id)implictValue;
-+ (instancetype)optionWithLongForm:(OFString *)longForm shortForm:(OFString *_Nullable)shortForm valueType:(Class)valueType withImplictValue:(id)implictValue;
-+ (instancetype)optionWithLongForm:(OFString *)longForm valueType:(Class)valueType withImplictValue:(id)implictValue;
-+ (instancetype)optionWithLongForm:(OFString *)longForm andShortForm:(OFString *_Nullable)shortForm;
-+ (instancetype)optionWithLongForm:(OFString *)longForm;
+- (_Nonnull instancetype)initWithLongForm:(OFString *_Nonnull)longForm shortForm:(OFString *_Nullable)shortForm valueType:(_Nullable Class)valueType withImplictValue:(_Nullable id)implictValue;
++ (_Nonnull instancetype)optionWithLongForm:(OFString *_Nonnull)longForm shortForm:(OFString *_Nonnull)shortForm valueType:(_Nonnull Class)valueType withImplictValue:(_Nonnull id)implictValue;
++ (_Nonnull instancetype)optionWithLongForm:(OFString *_Nonnull)longForm valueType:(_Nonnull Class)valueType withImplictValue:(_Nonnull id)implictValue;
++ (_Nonnull instancetype)optionWithLongForm:(OFString *_Nonnull)longForm andShortForm:(OFString *_Nonnull)shortForm;
++ (_Nonnull instancetype)optionWithLongForm:(OFString *_Nonnull)longForm;
 @end
 
 @interface MYArgMatch : OFObject
-@property (nonatomic, strong) OFString *flag;
-@property (nonatomic, strong) id value;
+@property (nonatomic, strong) OFString *_Nonnull flag;
+@property (nonatomic, strong) _Nonnull id value;
 
-- (instancetype)initWithFlag:(OFString *)flag andValue:(_Nullable id)value;
+- (_Nonnull instancetype)initWithFlag:(OFString *_Nonnull)flag andValue:(_Nonnull id)value;
 
 @end
 
+@interface MYArgExceptionDuplicateFlag : OFException
+@end
+
 @interface MYArgExceptionOptionNotFound : OFException
+@end
+
+@interface MYArgExceptionUnsupportedValueType : OFException
 @end
 
 @interface MYArgExceptionCannotConvertValue : OFException
@@ -29,10 +35,10 @@
 
 @interface MYArgParser : OFObject
 
-- (instancetype)initWithOptions:(OFArray<MYArgOption *> *)options enableEndOfOptions:(BOOL)enableEndOfOptions;
-+ (instancetype)parserWithOptions:(OFArray<MYArgOption *> *)options enableEndOfOptions:(BOOL)enableEndOfOptions;
-+ (instancetype)parserWithOptions:(OFArray<MYArgOption *> *)options;
+- (_Nonnull instancetype)initWithOptions:(OFArray<MYArgOption *> *_Nonnull)options enableEndOfOptions:(BOOL)enableEndOfOptions;
++ (_Nonnull instancetype)parserWithOptions:(OFArray<MYArgOption *> *_Nonnull)options enableEndOfOptions:(BOOL)enableEndOfOptions;
++ (_Nonnull instancetype)parserWithOptions:(OFArray<MYArgOption *> *_Nonnull)options;
 
-- (OFArray<MYArgMatch *> *)getMatches:(OFArray *)arguments;
+- (OFArray<MYArgMatch *> *_Nonnull)getMatches:(OFArray *_Nonnull)arguments;
 
 @end
