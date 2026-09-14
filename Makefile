@@ -2,7 +2,7 @@ VER := 0.0
 SRCS := $(wildcard srcs/*.m)
 
 build:
-	objfw-compile --lib $(VER) -o mayushii $(SRCS)
+	objfw-compile --arc --lib $(VER) -o mayushii $(SRCS)
 	echo Done!
 
 all: build
