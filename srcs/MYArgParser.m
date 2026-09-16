@@ -1,4 +1,5 @@
 #import "MYArgParser.h"
+#include <ctype.h>
 
 // RGL-001 Argumentative Monster
 
