@@ -1,9 +1,8 @@
 #import "MYArgParser.h"
+#import "OFArray+MYArgParser.h"
 #include <ctype.h>
 
 // RGL-001 Argumentative Monster
-
-// yes we abuse isEqual, get over it
 
 @implementation MYArgMatch
 
@@ -16,10 +15,6 @@
 
 - (OFString *)description {
 	return [OFString stringWithFormat:@"%@: flag: %@, value: %@", [self class], self.flag, self.value];
-}
-
-- (BOOL)isEqual:(id)object {
-	return [self.flag isEqual:object];
 }
 
 @end
@@ -69,14 +64,6 @@
 
 - (OFString *)description {
 	return [OFString stringWithFormat:@"%@: longForm: %@, shortForm: %@, valueType: %@, implictValue: %@", [self class], self.longForm, self.shortForm, self.valueType, self.implicitValue];
-}
-
-- (BOOL)isEqual:(id)object {
-	return [self.longForm isEqual:object] || [self.shortForm isEqual:object];
-}
-
-- (unsigned long)hash {
-	return [self.longForm hash];
 }
 
 @end
@@ -195,13 +182,13 @@
 		OFString *maybeFlag = [arguments objectAtIndex:i];
 
 		// early exit because unrecognized option passed
-		if (![self.loadedOptions containsObject:maybeFlag])
+		if (![self.loadedOptions containsFlag:maybeFlag])
 			@throw ([MYArgExceptionOptionNotFound exceptionWithEncounteredFlag:maybeFlag]);
 
-		MYArgOption *option = [self.loadedOptions objectAtIndex:[self.loadedOptions indexOfObject:maybeFlag]];
+		MYArgOption *option = [self.loadedOptions objectAtIndex:[self.loadedOptions indexOfFlag:maybeFlag]];
 
 		// we continue when we have passed this flag already
-		if ([matches containsObject:option.longForm])
+		if ([matches containsMatch:option.longForm])
 			@throw ([MYArgExceptionDuplicateFlag exceptionWithDuplicateFlag:maybeFlag]);
 
 		id value = nil;
