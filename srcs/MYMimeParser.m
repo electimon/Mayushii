@@ -1,6 +1,8 @@
 #import "MYMimeParser.h"
 #import "MYDataManager.h"
 
+// RGL-006 Mime Emporium
+
 @implementation MYMimeParser
 
 static bool initOk = false;
@@ -12,10 +14,12 @@ static OFMutableDictionary *mimeDB;
 	OFString *line;
 	mimeDB = [[OFMutableDictionary alloc] init];
 	while ((line = [mimeFile readLine]) != nil) {
-		if ([line characterAtIndex:0] == '#')
+		if ([line length] < 1 || [line characterAtIndex:0] == '#')
 			continue;
 		OFArray *comps = [line componentsSeparatedByCharactersInSet:[OFCharacterSet whitespaceCharacterSet]];
-		[mimeDB setObject:[comps firstObject] forKey:[comps lastObject]];
+		for (OFString *str in comps)
+			if ([str length] > 0)
+				[mimeDB setObject:[comps firstObject] forKey:str];
 	}
 	OFLog(@"Registered %d mime types!", [mimeDB count]);
 }
@@ -29,9 +33,15 @@ static OFMutableDictionary *mimeDB;
 
 + (OFString *)mimeTypeFor:(OFString *)extension {
 	[self initialize];
+	if ([extension length] < 1) // ?
+		return @"application/octet-stream";
+	OFString *mimeString;
 	if ([extension characterAtIndex:0] == '.')
-		return [mimeDB valueForKey:[extension substringFromIndex:1]];
-	return [mimeDB valueForKey:extension];
+		mimeString = [mimeDB valueForKey:[extension substringFromIndex:1]];
+	mimeString = [mimeDB valueForKey:extension];
+	if (mimeString == nil)
+		return @"application/octet-stream";
+	return mimeString;
 }
 
 @end

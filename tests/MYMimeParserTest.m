@@ -9,6 +9,9 @@ OF_APPLICATION_DELEGATE(MYMimeParserTest)
 {
 	OFApplication *app = [OFApplication sharedApplication];
 	OFLog(@"mime is : %@", [MYMimeParser mimeTypeFor:@"css"]);
+	OFLog(@"mime is : %@", [MYMimeParser mimeTypeFor:@"htm"]);
+	OFLog(@"mime is : %@", [MYMimeParser mimeTypeFor:@"html"]);
+	OFLog(@"mime is : %@", [MYMimeParser mimeTypeFor:@"js"]);
 	[OFApplication terminate];
 }
 @end
