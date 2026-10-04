@@ -8,7 +8,7 @@
 static bool initOk = false;
 
 + (OFIRI *)getDataDirectory {
-	OFIRI *dataDirectory = [OFIRI fileIRIWithPath:[OFString stringWithUTF8String:DATADIR]];
+	OFIRI *dataDirectory = [OFIRI fileIRIWithPath:[OFString stringWithUTF8String:SYSDATADIR]];
 	if (initOk == false) {
 		if (![[OFFileManager defaultManager] directoryExistsAtIRI:dataDirectory]) {
 			@throw ([MYInitializationException exceptionWithDescription: \
